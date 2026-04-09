@@ -1,6 +1,18 @@
-# 🪢 Hangman Game
+---
 
-A classic Hangman word-guessing game built with **React + Vite**, containerized with **Docker**. Players guess letters to uncover a hidden word before the hangman is fully drawn — 5 wrong guesses and it's game over!
+# 🪢 Hangman Game 2.0
+
+A classic Hangman word-guessing game built with **React + Vite**, now enhanced with **player profiles**, **win/loss persistence** via **DynamoDB**, and a **Node.js backend API**. Containerized with **Docker Compose** for a seamless full‑stack local environment.
+
+**New in 2.0:**  
+- Player login / name entry  
+- Wins & losses saved per player  
+- Win percentage displayed in real time  
+- Backend API (`GET` / `PUT /player/:name`)  
+- DynamoDB for persistent storage  
+- Unit tests for API endpoints & UI logic  
+
+---
 
 ## 🛠️ Technologies Used
 
@@ -8,112 +20,143 @@ A classic Hangman word-guessing game built with **React + Vite**, containerized 
 |---|---|
 | [React](https://react.dev/) | UI component framework |
 | [Vite](https://vite.dev/) | Frontend build tool & dev server |
-| [Docker](https://www.docker.com/) | Containerization for consistent deployment |
+| [Node.js + Express](https://expressjs.com/) | Backend API (new) |
+| [DynamoDB](https://aws.amazon.com/dynamodb/) | NoSQL database for player stats (new) |
+| [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) | Container orchestration (DynamoDB added) |
 | JavaScript (ES6+) | Application logic |
 | CSS | Styling and layout |
+| [Jest](https://jestjs.io/) / [React Testing Library](https://testing-library.com/react) | Unit tests (new) |
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Structure (updated)
 
 ```
 hangman-game/
-├── public/                  # Static assets
-├── src/
-│   ├── assets/              # Hangman stage images (hang0.png – hang5.png)
-│   ├── App.jsx              # Root component — holds all game state
-│   ├── HangmanImage.jsx     # Displays hangman image based on wrong guess count
-│   ├── WordDisplay.jsx      # Shows the word as blanks and revealed letters
-│   ├── LetterBox.jsx        # Individual clickable letter button
-│   ├── LetterGrid.jsx       # Renders all 26 letter buttons
-│   ├── GuessedLetters.jsx   # Displays previously guessed letters
-│   ├── NewGameButton.jsx    # Resets the game with a new word
-│   ├── GameOverPopup.jsx    # Win/loss modal popup
-│   └── main.jsx             # React app entry point
-├── .dockerignore
+├── backend/                 # NEW: Node.js API
+│   ├── controllers/         # Player controller (get/update)
+│   ├── routes/              # API routes
+│   ├── models/              # DynamoDB interaction layer
+│   ├── tests/               # Unit tests for API endpoints
+│   ├── Dockerfile           # Backend container definition
+│   └── package.json
+├── frontend/                # Original React app moved here
+│   ├── public/
+│   ├── src/                 # Same components + new LoginForm, StatsDisplay
+│   ├── Dockerfile
+│   ├── package.json
+│   └── ...
+├── docker-compose.yml       # NEW: Orchestrates frontend, backend, DynamoDB
 ├── .gitignore
-├── Dockerfile
-├── index.html               # Vite HTML entry point
-├── package.json
-├── package-lock.json
-└── vite.config.js
+└── README.md
 ```
+
+*(The original frontend files remain unchanged except for new UI components listed below.)*
 
 ---
 
-## 🧩 Component Overview
+## 🧩 New Components (Frontend)
 
 | Component | Description |
 |---|---|
-| `App.jsx` | Manages all game state: the secret word, guessed letters, win/loss logic |
-| `HangmanImage.jsx` | Swaps between 6 images (0–5 wrong guesses) to show hangman progress |
-| `WordDisplay.jsx` | Maps over the word and reveals correctly guessed letters as blanks fill in |
-| `LetterBox.jsx` | A single letter button — disables itself once clicked |
-| `LetterGrid.jsx` | Renders all 26 `LetterBox` components and handles guess events |
-| `GuessedLetters.jsx` | Displays the full history of letters the player has selected |
-| `NewGameButton.jsx` | Triggers a game reset and picks a new random word |
-| `GameOverPopup.jsx` | Overlay modal that appears on win or loss with a Play Again option |
+| `LoginForm.jsx` | Asks for player name, calls `GET /player/:name` to fetch/initialize stats |
+| `StatsDisplay.jsx` | Shows player name, wins, losses, and win percentage (updated after each game) |
+| *(Existing components stay – see original table)* | |
 
 ---
 
-## 🚀 How to Run Locally
+## 🧪 New Backend API
 
-**Prerequisites:** Node.js v18+ and npm installed
+### Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/player/:name` | Returns `{ name, wins, losses }` if player exists, otherwise `404` |
+| `PUT` | `/player/:name` | Updates wins/losses. Expects body `{ wins, losses }`. Returns updated player. |
+
+### DynamoDB Table Schema
+
+| Attribute | Type | Description |
+|---|---|---|
+| `name` | String (Primary Key) | Player's unique name |
+| `wins` | Number | Total wins |
+| `losses` | Number | Total losses |
+
+---
+
+## 🚀 How to Run Locally (with Docker Compose)
+
+**Prerequisites:** Docker Desktop installed and running
 
 ```bash
-# 1. Clone the repository
+# 1. Clone the repository and switch to your feature branch
 git clone <your-repo-url>
 cd hangman-game
+git checkout -b feature/hangman-2.0
 
-# 2. Install dependencies
-npm install
+# 2. Start all services (frontend, backend, DynamoDB)
+docker-compose up --build
 
-# 3. Start the development server
-npm run dev
+# 3. Open your browser
+http://localhost:5173
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+The `docker-compose.yml` will:
+- Start DynamoDB locally (port 8000)
+- Run the backend API (port 5000)
+- Run the React frontend (port 5173)
 
 ---
 
-## 🐳 How to Run with Docker
+## 🎮 How to Play (2.0)
 
-**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+1. **Login** – Enter your name on the welcome screen.  
+   - New players are automatically created in DynamoDB.  
+   - Returning players load their existing wins/losses.
 
+2. **Play Hangman** – Guess letters to reveal the secret word.  
+   - 5 wrong guesses = loss  
+   - Reveal all letters = win  
+
+3. **Stats Update** – After each game:  
+   - Wins/losses increment locally in React state  
+   - A `PUT` request syncs the changes to DynamoDB  
+   - Your win percentage updates instantly  
+
+4. **New Game** – Click “New Game” to play again with a different word.
+
+---
+
+## ✅ Testing (Step 6)
+
+Unit tests are written with **Jest** and **React Testing Library**.
+
+### Backend API tests
+- `GET /player/:name` – returns player or 404  
+- `PUT /player/:name` – updates stats and persists to DynamoDB  
+
+### Frontend UI tests
+- `LoginForm` – submits name, calls API, updates state  
+- `StatsDisplay` – renders name, wins, losses, percentage correctly  
+- Game flow – win/loss triggers local update + `PUT` request  
+
+**Run tests:**
 ```bash
-# 1. Build the Docker image
-docker build -t hangman-game .
+# Backend
+cd backend
+npm test
 
-# 2. Run the container
-docker run -p 5173:5173 hangman-game
+# Frontend
+cd frontend
+npm test
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
 ---
-
-## 🎮 How to Play
-
-1. A secret word is randomly selected at the start of each game
-2. Click any letter button to guess if it appears in the word
-3. Correct guesses reveal the letter in the word
-4. Wrong guesses add a body part to the hangman drawing
-5. You have **5 wrong guesses** before the hangman is complete and the game is lost
-6. Guess all letters before running out of chances to win!
-7. Click **New Game** at any time to reset and start fresh
-
----
-
-## ✅ Features
-
-- 🖼️ **Live Hangman Drawing** — 6 progressive images update with each wrong guess
-- 🔤 **Letter Selection** — Full A–Z grid; buttons disable after being clicked
-- 📋 **Guess History** — All previously guessed letters are displayed
-- 🔄 **New Game Button** — Instantly resets the board with a new random word
-- 🏆 **Win/Loss Popup** — Modal appears at game end showing result and the answer
 
 ---
 
 ## 👤 Author
 
-**Seth A. Mack**
+**Seth A. Mack**  
+
+Let me know if you'd like me to add a **screenshot placeholder**, a **Docker Compose file example**, or a **troubleshooting section** for common DynamoDB local issues.
